@@ -1,0 +1,202 @@
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bc2a4c3cb8647b6cda0d7d5167525c40176ff07
+--- /dev/null
++++ b/index.html
+@@ -0,0 +1,196 @@
++<!doctype html>
++<html lang="ru">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Ужин-помощник</title>
++    <style>
++      :root {
++        --bg: #f5f7fb;
++        --card: #ffffff;
++        --text: #1f2937;
++        --muted: #6b7280;
++        --liked: #be123c;
++        --border: #e5e7eb;
++      }
++
++      * { box-sizing: border-box; }
++      body {
++        margin: 0;
++        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
++        background: var(--bg);
++        color: var(--text);
++      }
++      .container { max-width: 880px; margin: 0 auto; padding: 24px 16px 40px; }
++      h1 { margin-bottom: 8px; }
++      .subtitle { margin-top: 0; color: var(--muted); }
++      .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 16px; }
++      .controls { display: grid; gap: 12px; }
++      .control { display: flex; flex-direction: column; gap: 6px; }
++      .control.inline { flex-direction: row; align-items: center; }
++      select, input[type="range"] { width: 100%; }
++      .summary { color: var(--muted); margin-top: 0; }
++      .recipes-list { display: grid; gap: 12px; }
++      .recipe-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
++      .recipe-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
++      .recipe-name { margin: 0; }
++      .recipe-meta { margin: 6px 0; color: var(--muted); }
++      .like-btn { border: 1px solid var(--border); border-radius: 999px; background: transparent; padding: 6px 10px; cursor: pointer; }
++      .like-btn.liked { color: #fff; background: var(--liked); border-color: var(--liked); }
++      .ingredients-list { margin: 0; padding-left: 18px; }
++      .empty { color: var(--muted); margin: 8px 0 0; }
++    </style>
++  </head>
++  <body>
++    <main class="container">
++      <h1>🍽️ Ужин-помощник</h1>
++      <p class="subtitle">Подбираем блюда по калориям, бюджету и вашим лайкам.</p>
++
++      <section class="card controls">
++        <h2>Фильтры</h2>
++        <div class="control">
++          <label for="storeSelect">Ближайший магазин</label>
++          <select id="storeSelect"></select>
++        </div>
++        <div class="control">
++          <label for="maxCalories">Максимум калорий: <span id="caloriesValue">800</span> ккал</label>
++          <input type="range" id="maxCalories" min="300" max="1400" step="50" value="800" />
++        </div>
++        <div class="control">
++          <label for="maxBudget">Максимальный бюджет: <span id="budgetValue">700</span> ₽</label>
++          <input type="range" id="maxBudget" min="100" max="1800" step="50" value="700" />
++        </div>
++        <div class="control inline">
++          <input type="checkbox" id="preferLiked" />
++          <label for="preferLiked">Сначала показывать понравившиеся рецепты</label>
++        </div>
++      </section>
++
++      <section class="card">
++        <h2>Рекомендации на ужин</h2>
++        <p id="summary" class="summary"></p>
++        <div id="recipesList" class="recipes-list"></div>
++      </section>
++    </main>
++
++    <template id="recipeTemplate">
++      <article class="recipe-card">
++        <div class="recipe-head">
++          <h3 class="recipe-name"></h3>
++          <button class="like-btn" type="button"></button>
++        </div>
++        <p class="recipe-meta"></p>
++        <ul class="ingredients-list"></ul>
++      </article>
++    </template>
++
++    <script>
++      const stores = {
++        "Пятёрочка": { курица: 320, рис: 90, томаты: 140, паста: 95, фарш: 390, фасоль: 110, лосось: 730, картофель: 80, яйца: 120, сыр: 210, гречка: 85, брокколи: 170, тортилья: 130, авокадо: 220, тунец: 260, огурцы: 100 },
++        "Перекрёсток": { курица: 350, рис: 100, томаты: 155, паста: 105, фарш: 420, фасоль: 120, лосось: 790, картофель: 90, яйца: 130, сыр: 230, гречка: 95, брокколи: 180, тортилья: 145, авокадо: 240, тунец: 285, огурцы: 110 },
++        "Магнит": { курица: 300, рис: 85, томаты: 130, паста: 90, фарш: 370, фасоль: 100, лосось: 700, картофель: 75, яйца: 115, сыр: 200, гречка: 80, брокколи: 160, тортилья: 120, авокадо: 210, тунец: 250, огурцы: 95 },
++      };
++
++      const recipes = [
++        { id: "chicken-rice", name: "Курица с рисом и овощами", calories: 620, ingredients: ["курица", "рис", "томаты", "огурцы"] },
++        { id: "pasta-meat", name: "Паста с мясным соусом", calories: 780, ingredients: ["паста", "фарш", "томаты", "сыр"] },
++        { id: "salmon-potato", name: "Лосось с картофелем и брокколи", calories: 690, ingredients: ["лосось", "картофель", "брокколи"] },
++        { id: "buckwheat-eggs", name: "Гречка с яйцом и салатом", calories: 520, ingredients: ["гречка", "яйца", "огурцы", "томаты"] },
++        { id: "bean-burrito", name: "Буррито с фасолью и авокадо", calories: 710, ingredients: ["тортилья", "фасоль", "авокадо", "сыр"] },
++        { id: "tuna-bowl", name: "Тунец-боул с рисом", calories: 560, ingredients: ["тунец", "рис", "огурцы", "авокадо"] },
++      ];
++
++      const storageKey = "dinner-liked-recipes";
++      let likedRecipes = new Set(JSON.parse(localStorage.getItem(storageKey) || "[]"));
++
++      const storeSelect = document.getElementById("storeSelect");
++      const maxCalories = document.getElementById("maxCalories");
++      const caloriesValue = document.getElementById("caloriesValue");
++      const maxBudget = document.getElementById("maxBudget");
++      const budgetValue = document.getElementById("budgetValue");
++      const preferLiked = document.getElementById("preferLiked");
++      const recipesList = document.getElementById("recipesList");
++      const summary = document.getElementById("summary");
++      const recipeTemplate = document.getElementById("recipeTemplate");
++
++      Object.keys(stores).forEach((storeName) => {
++        const option = document.createElement("option");
++        option.value = storeName;
++        option.textContent = storeName;
++        storeSelect.append(option);
++      });
++      storeSelect.value = "Пятёрочка";
++
++      function recipeCost(recipe, storeName) {
++        const priceTable = stores[storeName];
++        return recipe.ingredients.reduce((total, ingredient) => total + (priceTable[ingredient] || 0), 0);
++      }
++
++      function persistLikes() {
++        localStorage.setItem(storageKey, JSON.stringify([...likedRecipes]));
++      }
++
++      function toggleLike(recipeId) {
++        if (likedRecipes.has(recipeId)) likedRecipes.delete(recipeId);
++        else likedRecipes.add(recipeId);
++        persistLikes();
++        render();
++      }
++
++      function render() {
++        const selectedStore = storeSelect.value;
++        const caloriesLimit = Number(maxCalories.value);
++        const budgetLimit = Number(maxBudget.value);
++        caloriesValue.textContent = caloriesLimit;
++        budgetValue.textContent = budgetLimit;
++
++        let filtered = recipes
++          .map((recipe) => ({ ...recipe, totalCost: recipeCost(recipe, selectedStore) }))
++          .filter((recipe) => recipe.calories <= caloriesLimit && recipe.totalCost <= budgetLimit);
++
++        if (preferLiked.checked) {
++          filtered.sort((a, b) => Number(likedRecipes.has(b.id)) - Number(likedRecipes.has(a.id)));
++        }
++
++        summary.textContent = `Найдено рецептов: ${filtered.length}. Магазин: ${selectedStore}.`;
++        recipesList.innerHTML = "";
++
++        if (filtered.length === 0) {
++          const p = document.createElement("p");
++          p.className = "empty";
++          p.textContent = "Под текущие фильтры рецепты не найдены. Попробуйте увеличить лимиты.";
++          recipesList.append(p);
++          return;
++        }
++
++        filtered.forEach((recipe) => {
++          const node = recipeTemplate.content.cloneNode(true);
++          node.querySelector(".recipe-name").textContent = recipe.name;
++          node.querySelector(".recipe-meta").textContent = `${recipe.calories} ккал • ${recipe.totalCost} ₽`;
++
++          const ingredientsList = node.querySelector(".ingredients-list");
++          recipe.ingredients.forEach((ingredient) => {
++            const li = document.createElement("li");
++            li.textContent = `${ingredient} — ${stores[selectedStore][ingredient]} ₽`;
++            ingredientsList.append(li);
++          });
++
++          const likeButton = node.querySelector(".like-btn");
++          const liked = likedRecipes.has(recipe.id);
++          likeButton.textContent = liked ? "❤️ Понравилось" : "🤍 Нравится";
++          likeButton.classList.toggle("liked", liked);
++          likeButton.addEventListener("click", () => toggleLike(recipe.id));
++
++          recipesList.append(node);
++        });
++      }
++
++      [maxCalories, maxBudget, storeSelect, preferLiked].forEach((control) => {
++        control.addEventListener("input", render);
++        control.addEventListener("change", render);
++      });
++
++      render();
++    </script>
++  </body>
++</html>
